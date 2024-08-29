@@ -17,3 +17,31 @@ body, html {
     font-size: 18px;
     margin-top: 10px;
 }
+
+.button-container {
+    margin-top: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#startButton {
+    background-color: green;
+    color: white;
+}
+
+#stopButton {
+    background-color: red;
+    color: white;
+}
+
+#volumeSlider {
+    margin-top: 20px;
+    width: 200px;
+}
