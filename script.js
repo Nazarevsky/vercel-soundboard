@@ -1,30 +1,42 @@
 document.addEventListener('DOMContentLoaded', function() {
     const soundSelect = document.getElementById('soundSelect');
-    const soundPlayer = document.getElementById('soundPlayer');
     const startButton = document.getElementById('startButton');
     const stopButton = document.getElementById('stopButton');
     const volumeSlider = document.getElementById('volumeSlider');
+    let currentSounds = [];
 
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
-            playSound();
+            launchSound();
         }
     });
 
-    startButton.addEventListener('click', playSound);
+    startButton.addEventListener('click', launchSound);
 
     stopButton.addEventListener('click', function() {
-        soundPlayer.pause();
-        soundPlayer.currentTime = 0;
+        currentSounds.forEach(sound => {
+            sound.pause();
+            sound.currentTime = 0;
+        });
+        currentSounds = [];
     });
 
     volumeSlider.addEventListener('input', function() {
-        soundPlayer.volume = volumeSlider.value;
+        currentSounds.forEach(sound => {
+            sound.volume = volumeSlider.value;
+        });
     });
 
-    function playSound() {
+    function launchSound() {
         const selectedSound = soundSelect.value;
-        soundPlayer.src = `${selectedSound}`;
-        soundPlayer.play();
+        const newSound = new Audio(`${selectedSound}`);
+        newSound.volume = volumeSlider.value;
+        newSound.play();
+        currentSounds.push(newSound);
+
+        // Clean up the array when a sound ends
+        newSound.addEventListener('ended', function() {
+            currentSounds = currentSounds.filter(sound => sound !== newSound);
+        });
     }
 });
