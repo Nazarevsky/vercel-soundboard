@@ -1,0 +1,25 @@
+.snowflake {
+    position: fixed;
+    top: -10px;
+    color: rgb(92, 129, 182);
+    user-select: none;
+    pointer-events: none;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    z-index: 0;
+}
+
+@keyframes fall {
+    from {
+    top: -10px;
+    }
+    to {
+    top: 110vh;
+    }
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}

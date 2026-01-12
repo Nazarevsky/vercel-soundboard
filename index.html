@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select and Play Sound</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="stylesheet" href="styles/snowflakes.css">
     <link rel="icon" href="/favicon.ico">
 </head>
 <body>
+    <div class="snowflakes"></div>
+
     <div class="container">
         <select id="soundSelect">
             <option value="sounds/da-ebat-ego-v-rot-blia.mp3">Дааа, ебать его в рот</option>
@@ -36,6 +39,7 @@
             <option value="sounds/sirena-stony.mp3">Сирена</option>
             <option value="sounds/tu-tu-tu-du-max-verstappen.mp3">Макс Верстаппен</option>
             <option value="sounds/zrozumii-suko-mi-ukrayintsi.mp3">Зрозумій суко ми українці</option>
+            <option value="sounds/zarplata">Zarplata</option>
         </select>
 
         <div class="button-container">
@@ -49,6 +53,7 @@
     
     <audio id="soundPlayer"></audio>
 
-    <script src="script.js"></script>
+    <script src="scripts/script.js"></script>   
+    <script src="scripts/snowflakes.js"></script>
 </body>
 </html>

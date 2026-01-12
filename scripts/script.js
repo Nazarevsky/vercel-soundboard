@@ -1,3 +1,5 @@
+const zarplataSoundName = 'sounds/zarplata';
+
 document.addEventListener('DOMContentLoaded', function() {
     const soundSelect = document.getElementById('soundSelect');
     const startButton = document.getElementById('startButton');
@@ -7,11 +9,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
-            launchSound();
+            handleSound();
         }
     });
 
-    startButton.addEventListener('click', launchSound);
+    startButton.addEventListener('click', handleSound);
 
     stopButton.addEventListener('click', function() {
         currentSounds.forEach(sound => {
@@ -27,7 +29,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function launchSound() {
+    function handleSound() {
+        if (soundSelect.value === zarplataSoundName) {
+            launchZarplataSound()
+        } else {
+            launchCommonSound()
+        }
+    }
+
+    function launchZarplataSound() {
+        console.log("Zarplata sound triggered");
+    }
+
+    function launchCommonSound() {
         const selectedSound = soundSelect.value;
         const newSound = new Audio(`${selectedSound}`);
         newSound.volume = volumeSlider.value;
