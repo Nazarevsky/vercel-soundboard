@@ -1,4 +1,8 @@
 const zarplataSoundName = 'sounds/zarplata';
+const zarplataAudios = ['1.mp3', '2.mp3', '3.mp3', '4.mp3', '5.mp3', '6.mp3', '7.mp3', '8.mp3', '9.mp3', '10.mp3'];
+const zarplataSoundDelay = [300, 500]
+
+let allowZarplataSound = true
 
 document.addEventListener('DOMContentLoaded', function() {
     const soundSelect = document.getElementById('soundSelect');
@@ -17,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     stopButton.addEventListener('click', function() {
         currentSounds.forEach(sound => {
+            allowZarplataSound = false
             sound.pause();
             sound.currentTime = 0;
         });
@@ -33,16 +38,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (soundSelect.value === zarplataSoundName) {
             launchZarplataSound()
         } else {
-            launchCommonSound()
+            launchCommonSound(soundSelect.value)
         }
     }
 
     function launchZarplataSound() {
-        console.log("Zarplata sound triggered");
+        allowZarplataSound = true
+        const pool = [...zarplataAudios];
+
+        function launchNext() {
+            if (pool.length === 0 | !allowZarplataSound) {
+                return
+            } 
+
+            const index = Math.floor(Math.random() * pool.length);
+            const sound = pool.splice(index, 1)[0];
+
+            launchCommonSound(zarplataSoundName + "/"+ sound)
+
+            const delay = Math.random() * (zarplataSoundDelay[1] - zarplataSoundDelay[0]) + zarplataSoundDelay[0];
+            setTimeout(launchNext, delay);
+        }
+
+        launchNext();
     }
 
-    function launchCommonSound() {
-        const selectedSound = soundSelect.value;
+    function launchCommonSound(selectedSound) {
         const newSound = new Audio(`${selectedSound}`);
         newSound.volume = volumeSlider.value;
         newSound.play();
@@ -54,3 +75,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
