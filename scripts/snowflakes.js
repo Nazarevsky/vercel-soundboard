@@ -1,3 +1,7 @@
+const snowflakeCount = 80;
+const snowflakeChars = ['❄', '❅', '❆'];
+const snowContainer = document.getElementsByClassName('snowflakes')[0];
+
 function isWinterSeason() {
     const now = new Date();
     const month = now.getMonth(); // 0 = Jan, 11 = Dec
@@ -11,10 +15,6 @@ function isWinterSeason() {
 }
 
 function letItSnow() {
-    const snowflakeCount = 80;
-    const snowflakeChars = ['❄', '❅', '❆'];
-    const snowContainer = document.getElementsByClassName('snowflakes')[0];
-
     if (!snowContainer) {
         console.error("Snow container .snowflakes not found");
         return
