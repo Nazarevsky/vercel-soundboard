@@ -5,7 +5,8 @@ const zarplataSoundDelay = [300, 500]
 let allowZarplataSound = true
 
 const sounds = [
-    { label: "Дааа, ебать его в рот", file: "da-ebat-ego-v-rot-blia.mp3" },
+    { label: "Minecraft Damage", file: "minecraft-damage.mp3"},
+    { label: "Дааа, ебать его в рот", file: "da-ebat-ego-v-rot-blia.mp3"},
     { label: "Та пошел ты на хуй", file:"da-poshiol-ty-nakhui.mp3"},
     { label: "Орел", file:"eagle-earrape.mp3"},
     { label: "За донбасс", file:"tha_donbass.mp3"},
@@ -92,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const pool = [...zarplataAudios];
 
         function launchNext() {
-            if (pool.length === 0 | !allowZarplataSound) {
+            if (pool.length === 0 || !allowZarplataSound) {
                 return
             } 
 
