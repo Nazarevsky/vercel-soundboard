@@ -1,10 +1,15 @@
-const zarplataSoundName = 'sounds/zarplata';
+const soundNameZarplata = 'sounds/zarplata';
+const soundNameVanya = 'sounds/vanya';
+
+
+const vanyaAudios = ["1.m4a", "2.m4a", "3.m4a", "4.m4a", "5.m4a", "6.m4a", "7.m4a", "8.m4a", "9.m4a", "10.m4a", "11.m4a", "12.m4a", "13.m4a", "14.m4a", "15.m4a", "16.m4a", "17.m4a", "18.m4a", "19.m4a", "20.m4a"];
 const zarplataAudios = ['1.mp3', '2.mp3', '3.mp3', '4.mp3', '5.mp3', '6.mp3', '7.mp3', '8.mp3', '9.mp3', '10.mp3'];
 const zarplataSoundDelay = [300, 500]
 
 let allowZarplataSound = true
 
 const sounds = [
+    { label: "Vanya", file: "vanya"},
     { label: "Minecraft Damage", file: "minecraft-damage.mp3"},
     { label: "Дааа, ебать его в рот", file: "da-ebat-ego-v-rot-blia.mp3"},
     { label: "Та пошел ты на хуй", file:"da-poshiol-ty-nakhui.mp3"},
@@ -81,8 +86,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function handleSound() {
-        if (soundSelect.value === zarplataSoundName) {
+        if (soundSelect.value === soundNameZarplata) {
             launchZarplataSound()
+        } else if (soundSelect.value === soundNameVanya) {
+            launchVanyaSound()
         } else {
             launchCommonSound(soundSelect.value)
         }
@@ -100,13 +107,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const index = Math.floor(Math.random() * pool.length);
             const sound = pool.splice(index, 1)[0];
 
-            launchCommonSound(zarplataSoundName + "/"+ sound)
+            launchCommonSound(soundNameZarplata + "/"+ sound)
 
             const delay = Math.random() * (zarplataSoundDelay[1] - zarplataSoundDelay[0]) + zarplataSoundDelay[0];
             setTimeout(launchNext, delay);
         }
 
         launchNext();
+    }
+
+    function launchVanyaSound() {
+        // select a random sound from vanyaAudios
+        const index = Math.floor(Math.random() * vanyaAudios.length);
+        const sound = vanyaAudios[index];
+        launchCommonSound(soundNameVanya + "/"+ sound)
     }
 
     function launchCommonSound(selectedSound) {
