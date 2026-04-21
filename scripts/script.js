@@ -38,6 +38,7 @@ const sounds = [
     { label: "Макс Верстаппен", file:"tu-tu-tu-du-max-verstappen.mp3"},
     { label: "Зрозумій суко ми українці", file:"zrozumii-suko-mi-ukrayintsi.mp3"},
     { label: "Zarplata", file:"zarplata"},
+    { label: "Ватафак, амиго, вас ист дас", file:"amigo.mp3"},
 ]
 
 sounds.sort((a, b) => a.label.localeCompare(b.label));
