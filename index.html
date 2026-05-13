@@ -11,22 +11,21 @@
 <body>
     <div class="snowflakes"></div>
 
-    <div class="container">
-        <label for="soundSelect"></label><select id="soundSelect"></select>
+    <main class="container">
+        <label class="field-label" for="soundSelect">Sound</label>
+        <select class="sound-select" id="soundSelect"></select>
 
         <div class="button-container">
-            <button id="randomButton">Random</button>
-            <button id="startButton">Start</button>
-            <button id="stopButton">Stop</button>
+            <button class="button button-random" id="randomButton" type="button">Random</button>
+            <button class="button button-start" id="startButton" type="button">Start</button>
+            <button class="button button-stop" id="stopButton" type="button">Stop</button>
         </div>
-        
-        <label for="volumeSlider">Volume:</label>
-        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
-    </div>
-    
-    <audio id="soundPlayer"></audio>
 
-    <script src="scripts/script.js"></script>   
+        <label class="field-label" for="volumeSlider">Volume</label>
+        <input class="volume-slider" type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+    </main>
+
+    <script src="scripts/script.js"></script>
     <script src="scripts/snowflakes.js"></script>
 </body>
 </html>
