@@ -12,14 +12,15 @@
 
 @keyframes fall {
     from {
-    top: -10px;
+        top: -10px;
     }
+
     to {
-    top: 110vh;
+        top: 110vh;
     }
 }
 
 body > * {
-  position: relative;
-  z-index: 1;
+    position: relative;
+    z-index: 1;
 }

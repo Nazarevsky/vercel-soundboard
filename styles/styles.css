@@ -1,6 +1,10 @@
-body, html {
+html,
+body {
     height: 100%;
     margin: 0;
+}
+
+body {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -9,44 +13,54 @@ body, html {
 }
 
 .container {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
     text-align: center;
 }
 
-#soundSelect {
+.field-label {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.sound-select {
+    min-width: min(280px, 90vw);
     padding: 10px;
     font-size: 18px;
-    margin-top: 10px;
 }
 
 .button-container {
-    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 5px 0;
 }
 
-button {
+.button {
     padding: 10px 20px;
     font-size: 18px;
-    margin: 5px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
 }
 
-#randomButton {
+.button-random {
     background-color: #007BFF;
     color: white;
 }
 
-#startButton {
+.button-start {
     background-color: green;
     color: white;
 }
 
-#stopButton {
+.button-stop {
     background-color: red;
     color: white;
 }
 
-#volumeSlider {
-    margin-top: 20px;
+.volume-slider {
     width: 200px;
 }
