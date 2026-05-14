@@ -61,6 +61,19 @@ body {
     color: white;
 }
 
-.volume-slider {
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.range-slider {
     width: 200px;
+}
+
+.slider-value {
+    min-width: 48px;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: left;
 }

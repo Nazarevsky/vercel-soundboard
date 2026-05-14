@@ -90,11 +90,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopButton = document.getElementById('stopButton');
     const randomButton = document.getElementById('randomButton');
     const volumeSlider = document.getElementById('volumeSlider');
+    const volumeValue = document.getElementById('volumeValue');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
     const activeSounds = new Set();
 
     let sequenceRunId = 0;
 
     populateSoundSelect(soundSelect, sounds);
+    updateVolumeValue();
+    updateSpeedValue();
 
     document.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
@@ -107,8 +112,18 @@ document.addEventListener('DOMContentLoaded', () => {
     randomButton.addEventListener('click', playRandomSound);
 
     volumeSlider.addEventListener('input', () => {
+        updateVolumeValue();
+
         activeSounds.forEach(sound => {
             sound.volume = volumeSlider.value;
+        });
+    });
+
+    speedSlider.addEventListener('input', () => {
+        updateSpeedValue();
+
+        activeSounds.forEach(sound => {
+            sound.playbackRate = speedSlider.value;
         });
     });
 
@@ -161,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function playSound(path) {
         const sound = new Audio(path);
         sound.volume = volumeSlider.value;
+        sound.playbackRate = speedSlider.value;
         activeSounds.add(sound);
 
         sound.addEventListener('ended', () => {
@@ -182,6 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         activeSounds.clear();
+    }
+
+    function updateVolumeValue() {
+        volumeValue.textContent = `${Math.round(volumeSlider.value * 100)}%`;
+    }
+
+    function updateSpeedValue() {
+        speedValue.textContent = `${Number(speedSlider.value).toFixed(2).replace(/\.?0+$/, '')}x`;
     }
 });
 
