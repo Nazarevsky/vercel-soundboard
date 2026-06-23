@@ -1,3 +1,5 @@
+import { AudioEffectsEngine } from './audio-effects.js';
+
 const SOUND_ROOT = 'sounds';
 const SOUND_MODES = {
     randomClip: 'randomClip',
@@ -90,8 +92,7 @@ const sounds = [
 ].sort((a, b) => a.label.localeCompare(b.label));
 
 document.addEventListener('DOMContentLoaded', () => {
-    const soundSelect = document.getElementById('soundSelect');
-    const startButton = document.getElementById('startButton');
+    const soundGrid = document.getElementById('soundGrid');
     const stopButton = document.getElementById('stopButton');
     const randomButton = document.getElementById('randomButton');
     const volumeSlider = document.getElementById('volumeSlider');
@@ -102,23 +103,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const robotToggle = document.getElementById('robotToggle');
     const distortionToggle = document.getElementById('distortionToggle');
     const activeSounds = new Set();
-    const effectGraphs = new WeakMap();
+    const playbackAnimations = new WeakMap();
+    const playbackStates = new Map();
+    const audioEffects = new AudioEffectsEngine();
 
     let sequenceRunId = 0;
-    let audioContext;
-    let distortionCurve;
+    let selectedSound = null;
 
-    populateSoundSelect(soundSelect, sounds);
+    const soundCards = populateSoundGrid(soundGrid, sounds, selectAndPlaySound);
+    updateSelectedCard();
     updateVolumeValue();
     updateSpeedValue();
 
     document.addEventListener('keydown', event => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && event.target === document.body) {
             playSelectedSound();
         }
     });
 
-    startButton.addEventListener('click', playSelectedSound);
     stopButton.addEventListener('click', stopAllSounds);
     randomButton.addEventListener('click', playRandomSound);
 
@@ -138,39 +140,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    bassBoostToggle.addEventListener('change', updateActiveEffects);
-    robotToggle.addEventListener('change', updateActiveEffects);
-    distortionToggle.addEventListener('change', updateActiveEffects);
+    bassBoostToggle.addEventListener('change', updateEffectSettings);
+    robotToggle.addEventListener('change', updateEffectSettings);
+    distortionToggle.addEventListener('change', updateEffectSettings);
 
     function playSelectedSound() {
-        const selectedPath = soundSelect.value;
+        if (!selectedSound) {
+            return;
+        }
+
+        const soundFile = selectedSound.file;
+        const selectedPath = getSoundPath(soundFile);
         const selectedKey = selectedPath.replace(`${SOUND_ROOT}/`, '');
         const specialConfig = SPECIAL_SOUND_CONFIG[selectedKey];
 
         if (!specialConfig) {
-            playSound(selectedPath);
+            playSound(selectedPath, soundFile);
             return;
         }
 
         if (specialConfig.mode === SOUND_MODES.randomClip) {
-            playRandomClip(specialConfig);
+            playRandomClip(specialConfig, soundFile);
             return;
         }
 
-        playShuffledSequence(specialConfig);
+        playShuffledSequence(specialConfig, soundFile);
     }
 
     function playRandomSound() {
-        const sound = getRandomItem(sounds);
-        soundSelect.value = getSoundPath(sound.file);
+        selectedSound = getRandomItem(sounds);
+        updateSelectedCard();
         playSelectedSound();
     }
 
-    function playRandomClip({ directory, files }) {
-        playSound(getSoundPath(directory, getRandomItem(files)));
+    function selectAndPlaySound(sound) {
+        selectedSound = sound;
+        updateSelectedCard();
+        playSelectedSound();
     }
 
-    function playShuffledSequence({ directory, files, delayRangeMs }) {
+    function updateSelectedCard() {
+        soundCards.forEach(card => {
+            const isSelected = selectedSound !== null && card.dataset.soundFile === selectedSound.file;
+            card.setAttribute('aria-pressed', String(isSelected));
+
+            if (isSelected) {
+                delete card.dataset.completed;
+            }
+        });
+    }
+
+    function playRandomClip({ directory, files }, soundFile) {
+        playSound(getSoundPath(directory, getRandomItem(files)), soundFile);
+    }
+
+    function playShuffledSequence({ directory, files, delayRangeMs }, soundFile) {
         const pool = [...files];
         const currentRunId = ++sequenceRunId;
 
@@ -180,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const sound = takeRandomItem(pool);
-            playSound(getSoundPath(directory, sound));
+            playSound(getSoundPath(directory, sound), soundFile);
 
             setTimeout(playNext, getRandomNumber(delayRangeMs[0], delayRangeMs[1]));
         }
@@ -188,21 +212,27 @@ document.addEventListener('DOMContentLoaded', () => {
         playNext();
     }
 
-    function playSound(path) {
+    function playSound(path, soundFile) {
         const sound = new Audio(path);
+        sound.dataset.soundFile = soundFile;
         sound.volume = volumeSlider.value;
         sound.playbackRate = speedSlider.value;
-        const effectGraph = createEffectGraph(sound);
+        audioEffects.connect(sound);
         activeSounds.add(sound);
 
         sound.addEventListener('ended', () => {
-            activeSounds.delete(sound);
-            disconnectEffectGraph(effectGraph);
+            finishSound(sound, soundFile, true);
         });
 
-        resumeAudioContext().then(() => sound.play()).catch(error => {
-            activeSounds.delete(sound);
-            disconnectEffectGraph(effectGraph);
+        audioEffects.resume().catch(error => {
+            console.error('Could not resume the audio effects engine', error);
+        });
+
+        const playPromise = sound.play();
+        startPlaybackProgress(sound, soundFile);
+
+        playPromise.catch(error => {
+            finishSound(sound, soundFile);
             console.error(`Could not play sound "${path}"`, error);
         });
     }
@@ -213,10 +243,83 @@ document.addEventListener('DOMContentLoaded', () => {
         activeSounds.forEach(sound => {
             sound.pause();
             sound.currentTime = 0;
-            disconnectEffectGraph(effectGraphs.get(sound));
+            finishSound(sound, sound.dataset.soundFile);
         });
 
-        activeSounds.clear();
+        if (selectedSound) {
+            soundCards.get(selectedSound.file).dataset.completed = 'true';
+        }
+    }
+
+    function startPlaybackProgress(sound, soundFile) {
+        const card = soundCards.get(soundFile);
+
+        if (!card) {
+            return;
+        }
+
+        const state = playbackStates.get(soundFile) || { activeSounds: new Set(), currentSound: null };
+        state.activeSounds.add(sound);
+        state.currentSound = sound;
+        playbackStates.set(soundFile, state);
+        card.dataset.playing = 'true';
+        card.style.setProperty('--playback-progress', '0%');
+
+        function updateProgress() {
+            if (state.currentSound === sound && Number.isFinite(sound.duration) && sound.duration > 0) {
+                const progress = Math.min(100, sound.currentTime / sound.duration * 100);
+                card.style.setProperty('--playback-progress', `${progress}%`);
+            }
+
+            if (!sound.ended && !sound.paused) {
+                playbackAnimations.set(sound, requestAnimationFrame(updateProgress));
+            }
+        }
+
+        updateProgress();
+    }
+
+    function finishSound(sound, soundFile, completed = false) {
+        activeSounds.delete(sound);
+        clearPlaybackProgress(sound, soundFile, completed);
+        audioEffects.disconnect(sound);
+    }
+
+    function clearPlaybackProgress(sound, soundFile, completed) {
+        const animationFrame = playbackAnimations.get(sound);
+
+        if (animationFrame !== undefined) {
+            cancelAnimationFrame(animationFrame);
+            playbackAnimations.delete(sound);
+        }
+
+        const state = playbackStates.get(soundFile);
+        const card = soundCards.get(soundFile);
+
+        if (!state || !card) {
+            return;
+        }
+
+        state.activeSounds.delete(sound);
+
+        if (state.currentSound !== sound) {
+            return;
+        }
+
+        const remainingSounds = [...state.activeSounds].filter(activeSound => (
+            !activeSound.ended && !activeSound.paused
+        ));
+        state.currentSound = remainingSounds.at(-1) || null;
+
+        if (!state.currentSound) {
+            playbackStates.delete(soundFile);
+            card.dataset.playing = 'false';
+            card.style.removeProperty('--playback-progress');
+
+            if (completed && selectedSound?.file === soundFile) {
+                card.dataset.completed = 'true';
+            }
+        }
     }
 
     function updateVolumeValue() {
@@ -227,129 +330,31 @@ document.addEventListener('DOMContentLoaded', () => {
         speedValue.textContent = `${Number(speedSlider.value).toFixed(2).replace(/\.?0+$/, '')}x`;
     }
 
-    function getAudioContext() {
-        if (audioContext) {
-            return audioContext;
-        }
-
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-        if (!AudioContextClass) {
-            return null;
-        }
-
-        audioContext = new AudioContextClass();
-        return audioContext;
-    }
-
-    function resumeAudioContext() {
-        const context = getAudioContext();
-
-        if (!context || context.state !== 'suspended') {
-            return Promise.resolve();
-        }
-
-        return context.resume();
-    }
-
-    function createEffectGraph(sound) {
-        const context = getAudioContext();
-
-        if (!context) {
-            return null;
-        }
-
-        const source = context.createMediaElementSource(sound);
-        const bassFilter = context.createBiquadFilter();
-        const distortion = context.createWaveShaper();
-        const robotGain = context.createGain();
-        const robotOscillator = context.createOscillator();
-        const robotDepth = context.createGain();
-        const limiter = context.createDynamicsCompressor();
-
-        bassFilter.type = 'lowshelf';
-        bassFilter.frequency.value = 220;
-        distortion.oversample = '4x';
-        robotOscillator.type = 'sine';
-        robotOscillator.frequency.value = 35;
-        limiter.threshold.value = -6;
-        limiter.ratio.value = 12;
-        limiter.attack.value = 0.003;
-        limiter.release.value = 0.15;
-
-        source.connect(bassFilter);
-        bassFilter.connect(distortion);
-        distortion.connect(robotGain);
-        robotGain.connect(limiter);
-        limiter.connect(context.destination);
-        robotOscillator.connect(robotDepth);
-        robotDepth.connect(robotGain.gain);
-        robotOscillator.start();
-
-        const graph = {
-            source,
-            bassFilter,
-            distortion,
-            robotGain,
-            robotOscillator,
-            robotDepth,
-            limiter,
-        };
-        effectGraphs.set(sound, graph);
-        applyEffects(graph);
-        return graph;
-    }
-
-    function createDistortionCurve(amount = 90) {
-        if (distortionCurve) {
-            return distortionCurve;
-        }
-
-        const sampleCount = 44100;
-        distortionCurve = new Float32Array(sampleCount);
-        const degrees = Math.PI / 180;
-
-        for (let index = 0; index < sampleCount; index += 1) {
-            const value = index * 2 / sampleCount - 1;
-            distortionCurve[index] = (3 + amount) * value * 20 * degrees
-                / (Math.PI + amount * Math.abs(value));
-        }
-
-        return distortionCurve;
-    }
-
-    function updateActiveEffects() {
-        activeSounds.forEach(sound => applyEffects(effectGraphs.get(sound)));
-    }
-
-    function applyEffects(graph) {
-        if (!graph) {
-            return;
-        }
-
-        graph.bassFilter.gain.value = bassBoostToggle.checked ? 14 : 0;
-        graph.distortion.curve = distortionToggle.checked ? createDistortionCurve() : null;
-        graph.robotGain.gain.value = robotToggle.checked ? 0.5 : 1;
-        graph.robotDepth.gain.value = robotToggle.checked ? 0.5 : 0;
-    }
-
-    function disconnectEffectGraph(graph) {
-        if (!graph) {
-            return;
-        }
-
-        graph.robotOscillator.stop();
-        Object.values(graph).forEach(node => node.disconnect());
+    function updateEffectSettings() {
+        audioEffects.setEffects({
+            bassBoost: bassBoostToggle.checked,
+            distortion: distortionToggle.checked,
+            robot: robotToggle.checked,
+        });
     }
 });
 
-function populateSoundSelect(soundSelect, soundList) {
-    soundList.forEach(({ label, file }) => {
-        const option = document.createElement('option');
-        option.value = getSoundPath(file);
-        option.textContent = label;
-        soundSelect.appendChild(option);
+function populateSoundGrid(soundGrid, soundList, onSelect) {
+    const soundCards = new Map();
+
+    soundList.forEach(sound => {
+        const card = document.createElement('button');
+        card.className = 'sound-card';
+        card.type = 'button';
+        card.dataset.soundFile = sound.file;
+        card.setAttribute('aria-pressed', 'false');
+        card.textContent = sound.label;
+        card.addEventListener('click', () => onSelect(sound));
+        soundGrid.appendChild(card);
+        soundCards.set(sound.file, card);
     });
+
+    return soundCards;
 }
 
 function getSoundPath(...parts) {
