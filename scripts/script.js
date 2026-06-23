@@ -82,6 +82,11 @@ const sounds = [
     { label: 'Zarplata', file: 'zarplata' },
     { label: 'Ватафак, амиго, вас ист дас', file: 'amigo.mp3' },
     { label: 'sixseven', file: '67.mp3' },
+    { label: '3 изумруда', file: '3izumruda.wav' },
+    { label: 'мамаджан', file: 'mamadzhan.mp3'},
+    { label: 'meow', file: 'meow.mp3'},
+    { label: 'турбина самолета', file: 'turbina.mp3'},
+    { label: 'womp womp', file: 'downer_noise.mp3'}
 ].sort((a, b) => a.label.localeCompare(b.label));
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -93,9 +98,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeValue = document.getElementById('volumeValue');
     const speedSlider = document.getElementById('speedSlider');
     const speedValue = document.getElementById('speedValue');
+    const bassBoostToggle = document.getElementById('bassBoostToggle');
+    const robotToggle = document.getElementById('robotToggle');
+    const distortionToggle = document.getElementById('distortionToggle');
     const activeSounds = new Set();
+    const effectGraphs = new WeakMap();
 
     let sequenceRunId = 0;
+    let audioContext;
+    let distortionCurve;
 
     populateSoundSelect(soundSelect, sounds);
     updateVolumeValue();
@@ -126,6 +137,10 @@ document.addEventListener('DOMContentLoaded', () => {
             sound.playbackRate = speedSlider.value;
         });
     });
+
+    bassBoostToggle.addEventListener('change', updateActiveEffects);
+    robotToggle.addEventListener('change', updateActiveEffects);
+    distortionToggle.addEventListener('change', updateActiveEffects);
 
     function playSelectedSound() {
         const selectedPath = soundSelect.value;
@@ -177,14 +192,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const sound = new Audio(path);
         sound.volume = volumeSlider.value;
         sound.playbackRate = speedSlider.value;
+        const effectGraph = createEffectGraph(sound);
         activeSounds.add(sound);
 
         sound.addEventListener('ended', () => {
             activeSounds.delete(sound);
+            disconnectEffectGraph(effectGraph);
         });
 
-        sound.play().catch(error => {
+        resumeAudioContext().then(() => sound.play()).catch(error => {
             activeSounds.delete(sound);
+            disconnectEffectGraph(effectGraph);
             console.error(`Could not play sound "${path}"`, error);
         });
     }
@@ -195,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeSounds.forEach(sound => {
             sound.pause();
             sound.currentTime = 0;
+            disconnectEffectGraph(effectGraphs.get(sound));
         });
 
         activeSounds.clear();
@@ -206,6 +225,121 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateSpeedValue() {
         speedValue.textContent = `${Number(speedSlider.value).toFixed(2).replace(/\.?0+$/, '')}x`;
+    }
+
+    function getAudioContext() {
+        if (audioContext) {
+            return audioContext;
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+            return null;
+        }
+
+        audioContext = new AudioContextClass();
+        return audioContext;
+    }
+
+    function resumeAudioContext() {
+        const context = getAudioContext();
+
+        if (!context || context.state !== 'suspended') {
+            return Promise.resolve();
+        }
+
+        return context.resume();
+    }
+
+    function createEffectGraph(sound) {
+        const context = getAudioContext();
+
+        if (!context) {
+            return null;
+        }
+
+        const source = context.createMediaElementSource(sound);
+        const bassFilter = context.createBiquadFilter();
+        const distortion = context.createWaveShaper();
+        const robotGain = context.createGain();
+        const robotOscillator = context.createOscillator();
+        const robotDepth = context.createGain();
+        const limiter = context.createDynamicsCompressor();
+
+        bassFilter.type = 'lowshelf';
+        bassFilter.frequency.value = 220;
+        distortion.oversample = '4x';
+        robotOscillator.type = 'sine';
+        robotOscillator.frequency.value = 35;
+        limiter.threshold.value = -6;
+        limiter.ratio.value = 12;
+        limiter.attack.value = 0.003;
+        limiter.release.value = 0.15;
+
+        source.connect(bassFilter);
+        bassFilter.connect(distortion);
+        distortion.connect(robotGain);
+        robotGain.connect(limiter);
+        limiter.connect(context.destination);
+        robotOscillator.connect(robotDepth);
+        robotDepth.connect(robotGain.gain);
+        robotOscillator.start();
+
+        const graph = {
+            source,
+            bassFilter,
+            distortion,
+            robotGain,
+            robotOscillator,
+            robotDepth,
+            limiter,
+        };
+        effectGraphs.set(sound, graph);
+        applyEffects(graph);
+        return graph;
+    }
+
+    function createDistortionCurve(amount = 90) {
+        if (distortionCurve) {
+            return distortionCurve;
+        }
+
+        const sampleCount = 44100;
+        distortionCurve = new Float32Array(sampleCount);
+        const degrees = Math.PI / 180;
+
+        for (let index = 0; index < sampleCount; index += 1) {
+            const value = index * 2 / sampleCount - 1;
+            distortionCurve[index] = (3 + amount) * value * 20 * degrees
+                / (Math.PI + amount * Math.abs(value));
+        }
+
+        return distortionCurve;
+    }
+
+    function updateActiveEffects() {
+        activeSounds.forEach(sound => applyEffects(effectGraphs.get(sound)));
+    }
+
+    function applyEffects(graph) {
+        if (!graph) {
+            return;
+        }
+
+        graph.bassFilter.gain.value = bassBoostToggle.checked ? 14 : 0;
+        graph.distortion.curve = distortionToggle.checked ? createDistortionCurve() : null;
+        graph.robotGain.gain.value = robotToggle.checked ? 0.5 : 1;
+        graph.robotDepth.gain.value = robotToggle.checked ? 0.5 : 0;
+    }
+
+    function disconnectEffectGraph(graph) {
+        if (!graph) {
+            return;
+        }
+
+        graph.robotOscillator.stop();
+        Object.values(graph).forEach(node => node.disconnect());
     }
 });
 
