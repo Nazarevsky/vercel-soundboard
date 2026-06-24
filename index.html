@@ -12,29 +12,51 @@
     <div class="snowflakes"></div>
 
     <main class="container">
-        <label class="field-label" for="soundSelect">Sound</label>
-        <select class="sound-select" id="soundSelect"></select>
+        <header class="page-header">
+            <h1 class="page-title">Soundboard</h1>
+            <div class="button-container">
+                <button class="button button-random" id="randomButton" type="button">Random</button>
+                <button class="button button-stop" id="stopButton" type="button">Stop</button>
+            </div>
+        </header>
 
-        <div class="button-container">
-            <button class="button button-random" id="randomButton" type="button">Random</button>
-            <button class="button button-start" id="startButton" type="button">Start</button>
-            <button class="button button-stop" id="stopButton" type="button">Stop</button>
-        </div>
+        <section class="controls-panel" aria-label="Playback settings">
+            <div class="control-group">
+                <label class="field-label" for="volumeSlider">Volume</label>
+                <div class="slider-row">
+                    <input class="range-slider" type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+                    <output class="slider-value" id="volumeValue" for="volumeSlider">100%</output>
+                </div>
+            </div>
 
-        <label class="field-label" for="volumeSlider">Volume</label>
-        <div class="slider-row">
-            <input class="range-slider" type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
-            <output class="slider-value" id="volumeValue" for="volumeSlider">100%</output>
-        </div>
+            <div class="control-group">
+                <label class="field-label" for="speedSlider">Speed</label>
+                <div class="slider-row">
+                    <input class="range-slider" type="range" id="speedSlider" min="0.25" max="3" step="0.05" value="1">
+                    <output class="slider-value" id="speedValue" for="speedSlider">1x</output>
+                </div>
+            </div>
 
-        <label class="field-label" for="speedSlider">Speed</label>
-        <div class="slider-row">
-            <input class="range-slider" type="range" id="speedSlider" min="0.25" max="3" step="0.05" value="1">
-            <output class="slider-value" id="speedValue" for="speedSlider">1x</output>
-        </div>
+            <fieldset class="effects-panel" aria-label="Effects">
+                <label class="effect-toggle">
+                    <input type="checkbox" id="bassBoostToggle">
+                    <span>Bass Boost</span>
+                </label>
+                <label class="effect-toggle">
+                    <input type="checkbox" id="robotToggle">
+                    <span>Robot</span>
+                </label>
+                <label class="effect-toggle">
+                    <input type="checkbox" id="distortionToggle">
+                    <span>Distortion</span>
+                </label>
+            </fieldset>
+        </section>
+
+        <div class="sound-grid" id="soundGrid"></div>
     </main>
 
-    <script src="scripts/script.js"></script>
+    <script type="module" src="scripts/script.js"></script>
     <script src="scripts/snowflakes.js"></script>
 </body>
 </html>
