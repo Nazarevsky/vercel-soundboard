@@ -474,6 +474,7 @@ input.select-input {
 }
 
 .pill-button {
+    display: inline-block;
     justify-self: start;
     margin-top: 8px;
     padding: 14px 32px;
@@ -484,6 +485,8 @@ input.select-input {
     font: inherit;
     font-size: 15px;
     font-weight: 800;
+    text-decoration: none;
+    text-align: center;
     cursor: pointer;
 }
 
