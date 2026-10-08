@@ -16,62 +16,9 @@
             `</svg>`;
     }
 
-    function hashString(str) {
-        let h = 2166136261;
-        for (let i = 0; i < str.length; i++) {
-            h ^= str.charCodeAt(i);
-            h = Math.imul(h, 16777619);
-        }
-        return h >>> 0;
-    }
-
-    function mulberry32(seed) {
-        let a = seed;
-        return () => {
-            a |= 0;
-            a = (a + 0x6D2B79F5) | 0;
-            let t = Math.imul(a ^ (a >>> 15), 1 | a);
-            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-    }
-
-    // Returns 24 entries: 'on' | 'off' | 'off-first-half' | 'off-second-half'
-    function generateDaySchedule(street, house, dayOffset) {
-        const rng = mulberry32(hashString(`${street}|${house}|${dayOffset}`));
-        const slots = new Array(24).fill('on');
-        const blockCount = 1 + Math.floor(rng() * 2);
-
-        for (let b = 0; b < blockCount; b++) {
-            const startHalfHour = Math.floor(rng() * 44); // 0..43 half-hour units within 0-22h
-            const lengthHalfHours = 4 + Math.floor(rng() * 7); // 2h..5.5h
-            const startUnit = startHalfHour;
-            const endUnit = Math.min(startUnit + lengthHalfHours, 47);
-
-            for (let unit = startUnit; unit < endUnit; unit++) {
-                const hour = Math.floor(unit / 2);
-                const isFirstHalf = unit % 2 === 0;
-                if (hour > 23) continue;
-
-                if (unit === startUnit && !isFirstHalf) {
-                    if (slots[hour] === 'on') slots[hour] = 'off-second-half';
-                } else if (unit === endUnit - 1 && isFirstHalf) {
-                    if (slots[hour] === 'on') slots[hour] = 'off-first-half';
-                } else {
-                    slots[hour] = 'off';
-                }
-            }
-        }
-
-        return slots;
-    }
-
-    function formatDate(date) {
-        const dd = String(date.getDate()).padStart(2, '0');
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const yy = String(date.getFullYear()).slice(-2);
-        return `${dd}.${mm}.${yy}`;
-    }
+    const streetSelect = document.getElementById('streetSelect');
+    const houseSelect = document.getElementById('houseSelect');
+    const infoBoxUpdated = document.getElementById('infoBoxUpdated');
 
     function formatDateTime(date) {
         const dd = String(date.getDate()).padStart(2, '0');
@@ -82,59 +29,8 @@
         return `${hh}:${mi} ${dd}.${mm}.${yyyy}`;
     }
 
-    const streetSelect = document.getElementById('streetSelect');
-    const houseSelect = document.getElementById('houseSelect');
-    const infoBoxUpdated = document.getElementById('infoBoxUpdated');
-    const tableUpdated = document.getElementById('tableUpdated');
-    const todayLabel = document.getElementById('todayLabel');
-    const tomorrowLabel = document.getElementById('tomorrowLabel');
-    const todayTab = document.getElementById('todayTab');
-    const tomorrowTab = document.getElementById('tomorrowTab');
-    const headRow = document.getElementById('scheduleHeadRow');
-    const bodyRow = document.getElementById('scheduleBodyRow');
-
     const now = new Date();
-    const tomorrowDate = new Date(now);
-    tomorrowDate.setDate(now.getDate() + 1);
-
-    infoBoxUpdated.textContent = formatDateTime(now);
-    tableUpdated.textContent = formatDateTime(now);
-    todayLabel.textContent = formatDate(now);
-    tomorrowLabel.textContent = formatDate(tomorrowDate);
-    todayTab.querySelector('.day-tab-icon').innerHTML = boltIcon(14);
-    tomorrowTab.querySelector('.day-tab-icon').innerHTML = boltIcon(14);
-
-    const legendOff = document.getElementById('legendOff');
-    const legendFirst = document.getElementById('legendFirst');
-    const legendSecond = document.getElementById('legendSecond');
-    if (legendOff) legendOff.innerHTML = boltIcon(12);
-    if (legendFirst) legendFirst.innerHTML = boltIcon(12);
-    if (legendSecond) legendSecond.innerHTML = boltIcon(12);
-
-    const footerYear = document.getElementById('footerYear');
-    if (footerYear) footerYear.textContent = String(now.getFullYear());
-
-    document.querySelectorAll('.faq-row').forEach((row) => {
-        row.addEventListener('click', () => {
-            const expanded = row.getAttribute('aria-expanded') === 'true';
-            row.setAttribute('aria-expanded', String(!expanded));
-            const panel = row.nextElementSibling;
-            if (panel) panel.hidden = expanded;
-        });
-    });
-
-    const statusForm = document.getElementById('statusForm');
-    if (statusForm) {
-        statusForm.addEventListener('submit', (event) => event.preventDefault());
-    }
-
-    for (let hour = 0; hour < 24; hour++) {
-        const th = document.createElement('th');
-        th.textContent = `${String(hour).padStart(2, '0')}-${String((hour + 1) % 24).padStart(2, '0')}`;
-        headRow.appendChild(th);
-    }
-
-    let currentDay = 0; // 0 = today, 1 = tomorrow
+    if (infoBoxUpdated) infoBoxUpdated.textContent = formatDateTime(now);
 
     function populateStreets() {
         Object.keys(ADDRESS_BOOK).forEach((street) => {
@@ -155,51 +51,292 @@
         });
     }
 
-    function renderTable() {
-        const street = streetSelect.value;
-        const house = houseSelect.value;
-        const slots = generateDaySchedule(street, house, currentDay);
+    if (streetSelect && houseSelect) {
+        streetSelect.addEventListener('change', () => populateHouses(streetSelect.value));
+        populateStreets();
+        populateHouses(streetSelect.value);
+    }
 
-        bodyRow.innerHTML = '';
+    const footerYear = document.getElementById('footerYear');
+    if (footerYear) footerYear.textContent = String(now.getFullYear());
+
+    const legendSnake = document.getElementById('legendSnake');
+    const legendFood = document.getElementById('legendFood');
+    if (legendSnake) legendSnake.innerHTML = boltIcon(12);
+    if (legendFood) legendFood.innerHTML = boltIcon(12);
+
+    document.querySelectorAll('.faq-row').forEach((row) => {
+        row.addEventListener('click', () => {
+            const expanded = row.getAttribute('aria-expanded') === 'true';
+            row.setAttribute('aria-expanded', String(!expanded));
+            const panel = row.nextElementSibling;
+            if (panel) panel.hidden = expanded;
+        });
+    });
+
+    const statusForm = document.getElementById('statusForm');
+    if (statusForm) {
+        statusForm.addEventListener('submit', (event) => event.preventDefault());
+    }
+
+    // ---- Snake game ----
+    const headRow = document.getElementById('scheduleHeadRow');
+    const body = document.getElementById('scheduleBody');
+    if (!headRow || !body) return;
+
+    const COLS = 24;
+    const DAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця', 'Субота', 'Неділя'];
+    const ROWS = DAYS.length;
+    const TICK_MS_BASE = 200;
+    const TICK_MS_MIN = 90;
+
+    for (let hour = 0; hour < COLS; hour++) {
+        const th = document.createElement('th');
+        th.textContent = `${String(hour).padStart(2, '0')}-${String((hour + 1) % 24).padStart(2, '0')}`;
+        headRow.appendChild(th);
+    }
+
+    const cellEls = [];
+    const rowEls = [];
+    for (let r = 0; r < ROWS; r++) {
+        const tr = document.createElement('tr');
         const labelCell = document.createElement('td');
-        labelCell.textContent = `${street}, ${house}`;
-        bodyRow.appendChild(labelCell);
+        labelCell.textContent = DAYS[r];
+        tr.appendChild(labelCell);
 
-        slots.forEach((status) => {
+        const rowCells = [];
+        for (let c = 0; c < COLS; c++) {
             const td = document.createElement('td');
             td.className = 'cell';
-            if (status === 'off') {
-                td.classList.add('cell--off');
-                td.innerHTML = boltIcon(16);
-            } else if (status === 'off-first-half') {
-                td.classList.add('cell--first-half');
-                td.innerHTML = boltIcon(14);
-            } else if (status === 'off-second-half') {
-                td.classList.add('cell--second-half');
-                td.innerHTML = boltIcon(14);
+            tr.appendChild(td);
+            rowCells.push(td);
+        }
+        body.appendChild(tr);
+        cellEls.push(rowCells);
+        rowEls.push(tr);
+    }
+
+    const todayJs = now.getDay(); // 0 = Sunday ... 6 = Saturday
+    const todayIndex = (todayJs + 6) % 7; // Monday = 0 ... Sunday = 6
+    rowEls[todayIndex].classList.add('row-today');
+
+    const scoreValue = document.getElementById('scoreValue');
+    const highScoreValue = document.getElementById('highScoreValue');
+    const overlay = document.getElementById('gameOverlay');
+    const overlayTitle = document.getElementById('gameOverlayTitle');
+    const overlayText = document.getElementById('gameOverlayText');
+    const overlayButton = document.getElementById('gameOverlayButton');
+
+    let highScore = 0;
+    try {
+        highScore = parseInt(localStorage.getItem('snake-high-score'), 10) || 0;
+    } catch (e) {
+        highScore = 0;
+    }
+    if (highScoreValue) highScoreValue.textContent = String(highScore);
+
+    let snake = [];
+    let direction = { dr: 0, dc: 1 };
+    let pendingDirection = direction;
+    let food = null;
+    let score = 0;
+    let state = 'idle'; // idle | running | over
+    let timer = null;
+
+    function cellKey(r, c) {
+        return `${r}:${c}`;
+    }
+
+    function randomEmptyCell(occupied) {
+        const free = [];
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (!occupied.has(cellKey(r, c))) free.push({ r, c });
             }
-            bodyRow.appendChild(td);
+        }
+        if (free.length === 0) return null;
+        return free[Math.floor(Math.random() * free.length)];
+    }
+
+    function resetGame() {
+        const startRow = Math.floor(ROWS / 2);
+        const startCol = Math.floor(COLS / 2);
+        snake = [
+            { r: startRow, c: startCol - 1 },
+            { r: startRow, c: startCol - 2 },
+            { r: startRow, c: startCol - 3 },
+        ];
+        direction = { dr: 0, dc: 1 };
+        pendingDirection = direction;
+        score = 0;
+        if (scoreValue) scoreValue.textContent = '0';
+
+        const occupied = new Set(snake.map((s) => cellKey(s.r, s.c)));
+        food = randomEmptyCell(occupied);
+        render();
+    }
+
+    function render() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const td = cellEls[r][c];
+                td.className = 'cell';
+                td.innerHTML = '';
+            }
+        }
+
+        if (food) {
+            const td = cellEls[food.r][food.c];
+            td.classList.add('cell--first-half');
+            td.innerHTML = boltIcon(14);
+        }
+
+        snake.forEach((segment, i) => {
+            const td = cellEls[segment.r][segment.c];
+            td.classList.add('cell--off');
+            if (i === 0) td.classList.add('cell--snake-head');
+            td.innerHTML = boltIcon(16);
         });
     }
 
-    function setDay(day) {
-        currentDay = day;
-        const isToday = day === 0;
-        todayTab.setAttribute('aria-selected', String(isToday));
-        tomorrowTab.setAttribute('aria-selected', String(!isToday));
-        renderTable();
+    function currentTickMs() {
+        return Math.max(TICK_MS_MIN, TICK_MS_BASE - score * 6);
     }
 
-    streetSelect.addEventListener('change', () => {
-        populateHouses(streetSelect.value);
-        renderTable();
+    function scheduleTick() {
+        clearInterval(timer);
+        timer = setInterval(tick, currentTickMs());
+    }
+
+    function tick() {
+        direction = pendingDirection;
+        const head = snake[0];
+        const newHead = { r: head.r + direction.dr, c: head.c + direction.dc };
+
+        if (newHead.r < 0 || newHead.r >= ROWS || newHead.c < 0 || newHead.c >= COLS) {
+            return gameOver();
+        }
+
+        const willEat = food && newHead.r === food.r && newHead.c === food.c;
+        const bodyToCheck = willEat ? snake : snake.slice(0, -1);
+        if (bodyToCheck.some((s) => s.r === newHead.r && s.c === newHead.c)) {
+            return gameOver();
+        }
+
+        snake.unshift(newHead);
+        if (willEat) {
+            score += 1;
+            if (scoreValue) scoreValue.textContent = String(score);
+            const occupied = new Set(snake.map((s) => cellKey(s.r, s.c)));
+            food = randomEmptyCell(occupied);
+            scheduleTick();
+        } else {
+            snake.pop();
+        }
+
+        render();
+    }
+
+    function showOverlay(title, text, buttonLabel) {
+        if (!overlay) return;
+        overlayTitle.textContent = title;
+        overlayText.textContent = text;
+        overlayButton.textContent = buttonLabel;
+        overlay.hidden = false;
+    }
+
+    function hideOverlay() {
+        if (overlay) overlay.hidden = true;
+    }
+
+    function startGame() {
+        resetGame();
+        state = 'running';
+        hideOverlay();
+        scheduleTick();
+    }
+
+    function gameOver() {
+        clearInterval(timer);
+        state = 'over';
+        if (score > highScore) {
+            highScore = score;
+            if (highScoreValue) highScoreValue.textContent = String(highScore);
+            try {
+                localStorage.setItem('snake-high-score', String(highScore));
+            } catch (e) {
+                /* ignore */
+            }
+        }
+        showOverlay(
+            `Гра закінчена! Рахунок: ${score}`,
+            'Керування: стрілки або WASD. На мобільних — свайп або кнопки нижче.',
+            'Зіграти ще раз'
+        );
+    }
+
+    function setDirection(dr, dc) {
+        if (state !== 'running') {
+            startGame();
+        }
+        if (pendingDirection.dr === -dr && pendingDirection.dc === -dc) return; // no reversing
+        pendingDirection = { dr, dc };
+    }
+
+    const KEY_MAP = {
+        ArrowUp: [-1, 0],
+        KeyW: [-1, 0],
+        ArrowDown: [1, 0],
+        KeyS: [1, 0],
+        ArrowLeft: [0, -1],
+        KeyA: [0, -1],
+        ArrowRight: [0, 1],
+        KeyD: [0, 1],
+    };
+
+    document.addEventListener('keydown', (event) => {
+        const tag = document.activeElement && document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+        const move = KEY_MAP[event.code];
+        if (!move) return;
+        event.preventDefault();
+        setDirection(move[0], move[1]);
     });
 
-    houseSelect.addEventListener('change', renderTable);
-    todayTab.addEventListener('click', () => setDay(0));
-    tomorrowTab.addEventListener('click', () => setDay(1));
+    const dpadUp = document.getElementById('dpadUp');
+    const dpadDown = document.getElementById('dpadDown');
+    const dpadLeft = document.getElementById('dpadLeft');
+    const dpadRight = document.getElementById('dpadRight');
+    if (dpadUp) dpadUp.addEventListener('click', () => setDirection(-1, 0));
+    if (dpadDown) dpadDown.addEventListener('click', () => setDirection(1, 0));
+    if (dpadLeft) dpadLeft.addEventListener('click', () => setDirection(0, -1));
+    if (dpadRight) dpadRight.addEventListener('click', () => setDirection(0, 1));
 
-    populateStreets();
-    populateHouses(streetSelect.value);
-    renderTable();
+    if (overlayButton) overlayButton.addEventListener('click', startGame);
+
+    const tableScroll = document.querySelector('.table-scroll');
+    if (tableScroll) {
+        let touchStart = null;
+        tableScroll.addEventListener('touchstart', (event) => {
+            const t = event.changedTouches[0];
+            touchStart = { x: t.clientX, y: t.clientY };
+        }, { passive: true });
+
+        tableScroll.addEventListener('touchend', (event) => {
+            if (!touchStart) return;
+            const t = event.changedTouches[0];
+            const dx = t.clientX - touchStart.x;
+            const dy = t.clientY - touchStart.y;
+            touchStart = null;
+            if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                setDirection(0, dx > 0 ? 1 : -1);
+            } else {
+                setDirection(dy > 0 ? 1 : -1, 0);
+            }
+        }, { passive: true });
+    }
+
+    resetGame();
+    showOverlay('Натисніть стрілку, щоб почати', 'Керування: стрілки або WASD. На мобільних — свайп або кнопки нижче.', 'Почати гру');
 })();

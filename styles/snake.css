@@ -256,42 +256,6 @@ input.select-input {
     font-weight: 800;
 }
 
-.day-toggle {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.day-tab {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 24px;
-    border: none;
-    border-radius: var(--radius-md);
-    font: inherit;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    background: var(--gray-100);
-    color: var(--gray-500);
-}
-
-.day-tab-icon {
-    display: inline-flex;
-    color: currentColor;
-}
-
-.day-tab[aria-selected="true"] {
-    background: var(--yellow);
-    color: var(--black);
-}
-
-.day-tab:focus-visible {
-    outline: 2px solid var(--black);
-    outline-offset: 2px;
-}
-
 .table-updated {
     display: flex;
     align-items: center;
@@ -373,6 +337,100 @@ input.select-input {
 .cell--first-half .cell-icon,
 .cell--second-half .cell-icon {
     color: #c9930a;
+}
+
+.cell--snake-head {
+    box-shadow: inset 0 0 0 2px var(--yellow);
+}
+
+.row-today td:first-child {
+    background: var(--yellow);
+    color: var(--black);
+}
+
+/* Snake game */
+.game-stage {
+    position: relative;
+}
+
+.game-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: var(--radius-md);
+}
+
+.game-overlay[hidden] {
+    display: none;
+}
+
+.game-overlay-title {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.game-overlay-text {
+    margin: 0;
+    max-width: 320px;
+    font-size: 13.5px;
+    color: var(--gray-700);
+}
+
+.dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(2, 44px);
+    gap: 6px;
+    justify-content: center;
+}
+
+.dpad-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--gray-100);
+    color: var(--gray-700);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.dpad-btn:hover {
+    background: var(--gray-200);
+}
+
+.dpad-btn:active {
+    background: var(--yellow);
+    color: var(--black);
+}
+
+.dpad-btn--up {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.dpad-btn--left {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.dpad-btn--down {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.dpad-btn--right {
+    grid-column: 3;
+    grid-row: 2;
 }
 
 .legend {
