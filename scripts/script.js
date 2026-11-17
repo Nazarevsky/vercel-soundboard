@@ -53,6 +53,7 @@ const SPECIAL_SOUND_CONFIG = {
 };
 
 const sounds = [
+    { label: 'Хорошая работа Олег', file: 'good-work-oleg.wav' },
     { label: 'Vanya', file: 'vanya' },
     { label: 'Minecraft Damage', file: 'minecraft-damage.mp3' },
     { label: 'Дааа, ебать его в рот', file: 'da-ebat-ego-v-rot-blia.mp3' },
